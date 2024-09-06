@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Income Summary</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #ffe6e6;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+        h2 {
+            color: #ff3366;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.7);
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff3366;
+            text-align: center;
+        }
+        button {
+            background-color: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #e62e5c;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #ff3366;
+            color: white;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+        }
+        .chart-container canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+            }
+        }
+        /* Print-specific styles */
+        @media print {
+        .chart-section {
+            page-break-inside: avoid;
+            margin-bottom: 40px;
+            }
+        }
+
+        /* Page break after each section when printing */
+        @media print {
+            .chart-section {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="content">
+    <h2>Income and Expenses Summary</h2>
+
+    <!-- Total Money Section -->
+    <input type="text" id="totalIncome" value="Total Income: ₹0" readonly>
+    <input type="text" id="remainingMoney" value="Remaining Money: ₹0" readonly>
+
+    <!-- Income Table -->
+    <div class="chart-section">
+        <h3>Income Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount (₹)</th>
+                    <th>Source</th>
+                </tr>
+            </thead>
+            <tbody id="incomeTableBody">
+                <!-- Income data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="chart-section">
+        <h3>Expenses Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount (₹)</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody id="expenseTableBody">
+                <!-- Expense data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pie Chart Container -->
+    <div class="chart-container" id="pieChartContainer">
+        <h3>Summary Pie Chart</h3>
+        <canvas id="pieChart"></canvas>
+    </div>
+
+    <!-- Download PDF Button -->
+    <button onclick="downloadPDF()">Download as PDF</button>
+</div>
+
+<script>
+    // Retrieve stored data from sessionStorage
+    const incomeEntries = JSON.parse(sessionStorage.getItem('incomeEntries')) || [];
+    const expenseEntries = JSON.parse(sessionStorage.getItem('expenseEntries')) || [];
+
+    // Calculate total income and expenses
+    let totalIncome = incomeEntries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+    let totalExpenses = expenseEntries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+    let remainingMoney = totalIncome - totalExpenses;
+
+    // Display total income and remaining money
+    document.getElementById('totalIncome').value = `Total Income: ₹${totalIncome.toFixed(2)}`;
+    document.getElementById('remainingMoney').value = `Remaining Money: ₹${remainingMoney.toFixed(2)}`;
+
+    // Populate the tables with income and expense entries
+    const incomeTableBody = document.getElementById('incomeTableBody');
+    incomeEntries.forEach(entry => {
+        incomeTableBody.insertAdjacentHTML('beforeend', `<tr><td>${entry.date}</td><td>${entry.amount}</td><td>${entry.source}</td></tr>`);
+    });
+
+    const expenseTableBody = document.getElementById('expenseTableBody');
+    expenseEntries.forEach(entry => {
+        expenseTableBody.insertAdjacentHTML('beforeend', `<tr><td>${entry.date}</td><td>${entry.amount}</td><td>${entry.description}</td></tr>`);
+    });
+
+    // Initialize the pie chart
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Income', 'Expenses'],
+            datasets: [{
+                data: [totalIncome, totalExpenses],
+                backgroundColor: ['#ff3366', '#ffa500 ']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return '₹' + tooltipItem.raw.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Speak the remaining money amount using Web Speech API
+        const remainingMoneyText = document.getElementById('remainingMoney').value;
+
+        // Check if the Web Speech API is supported
+        if ('speechSynthesis' in window) {
+            const speech = new SpeechSynthesisUtterance(remainingMoneyText);
+            speech.lang = 'en-US'; // Language of the speech
+            window.speechSynthesis.speak(speech);
+        } else {
+            console.error('Web Speech API is not supported in this browser.');
+        }
+    });
+
+    // Download PDF function
+async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    // Wait for the content to render
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Capture the content of the container excluding the pie chart
+    html2canvas(document.getElementById('content'), {
+        scale: 2, // Increase the scale for better quality
+        ignoreElements: element => element.id === 'pieChartContainer' // Ignore pie chart
+    }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        
+        // A4 dimensions in mm
+        const pageWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // Add the first page
+        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // Add more pages if content exceeds one page
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            doc.addPage();
+            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        // Save the generated PDF
+        doc.save('income-summary.pdf');
+    });
+}
+</script>
+
+</body>
+</html>

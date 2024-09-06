@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Income and Expenses Tracker</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        header {
+            width: 100%;
+            background-color: #ff3366;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            position: relative;
+        }
+        .logo {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .logo img {
+            width: 60px; /* Adjust the size as per your needs */
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #ff3366, 0 0 40px #ff3366, 0 0 60px #ff3366;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background-color: #ffe6e6;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+        h2 {
+            color: #ff3366;
+            margin-bottom: 20px;
+        }
+        input[type="date"],
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #e62e5c;
+        }
+        .error {
+            color: red;
+            font-size: 12px;
+        }
+        .submit-all {
+            margin-top: 30px;
+        }
+        footer {
+            background-color: #ff3366;
+            color: white; /* Ensure footer text is white */
+            text-align: center;
+            padding: 15px;
+            position: static;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+        
+        footer p {
+            margin: 0;
+            font-size: 14px;
+            color: white; /* Ensure the paragraph text color is white */
+        }
+        .neon-instagram {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 10px;
+            display: inline-block;
+            border-radius: 5px;
+            transition: text-shadow 0.3s ease;
+            text-shadow: 0 0 5px #00f, 0 0 10px #00f, 0 0 15px #00f; /* Neon blue text shadow effect */
+        }        
+        .neon-instagram:hover {
+            text-shadow: 0 0 10px #00f, 0 0 20px #00f, 0 0 30px #00f; /* Enhanced neon blue text shadow effect on hover */
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+            }
+            .logo img {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <img src="logo.jpeg" alt="Site Logo">
+    </div>
+    Expenses Track
+</header>
+
+<!-- Income Section -->
+<div class="container">
+    <h2>INCOME</h2>
+    <form id="incomeForm">
+        <input type="date" id="incomeDate" required>
+        <input type="number" id="incomeAmount" placeholder="Enter income amount in ₹" required>
+        <input type="text" id="incomeSource" placeholder="Enter income source" required>
+        <div class="error" id="incomeError"></div>
+        <button type="button" onclick="addIncome()">Add Income</button>
+    </form>
+</div>
+
+<!-- Expenses Section -->
+<div class="container">
+    <h2>EXPENSES</h2>
+    <form id="expenseForm">
+        <input type="date" id="expenseDate" required>
+        <input type="number" id="expenseAmount" placeholder="Enter expense amount in ₹" required>
+        <input type="text" id="expenseDescription" placeholder="Enter expense description" required>
+        <div class="error" id="expenseError"></div>
+        <button type="button" onclick="addExpense()">Add Expense</button>
+    </form>
+</div>
+
+<!-- Button to go to Summary Page -->
+<div class="submit-all">
+    <button onclick="goToSummary()">Go to Summary Page</button>
+</div>
+
+<footer>
+    <p>&copy; 2024 PANDEY G. All rights reserved.</p>
+    <a href="https://www.instagram.com/mr.pandey.g" target="_blank" class="neon-instagram">INSTAGRAM</a>
+</footer>
+
+<script>
+    // Prevent future dates
+    const incomeDateInput = document.getElementById('incomeDate');
+    const expenseDateInput = document.getElementById('expenseDate');
+    const today = new Date().toISOString().split('T')[0];
+    incomeDateInput.setAttribute('max', today);
+    expenseDateInput.setAttribute('max', today);
+
+    // Array to store multiple income and expense entries
+    let incomeEntries = JSON.parse(sessionStorage.getItem('incomeEntries')) || [];
+    let expenseEntries = JSON.parse(sessionStorage.getItem('expenseEntries')) || [];
+
+    // Function to add income data to session storage
+    function addIncome() {
+        const incomeDate = document.getElementById('incomeDate').value;
+        const incomeAmount = document.getElementById('incomeAmount').value;
+        const incomeSource = document.getElementById('incomeSource').value;
+        const incomeErrorDiv = document.getElementById('incomeError');
+
+        // Clear previous error
+        incomeErrorDiv.textContent = '';
+
+        if (!incomeDate || !incomeAmount || !incomeSource) {
+            incomeErrorDiv.textContent = 'All fields are required!';
+            return;
+        }
+
+        // Add new income data to the array
+        incomeEntries.push({
+            date: incomeDate,
+            amount: incomeAmount,
+            source: incomeSource
+        });
+
+        // Store the array in sessionStorage
+        sessionStorage.setItem('incomeEntries', JSON.stringify(incomeEntries));
+
+        // Clear input fields
+        document.getElementById('incomeForm').reset();
+    }
+
+    // Function to add expense data to session storage
+    function addExpense() {
+        const expenseDate = document.getElementById('expenseDate').value;
+        const expenseAmount = document.getElementById('expenseAmount').value;
+        const expenseDescription = document.getElementById('expenseDescription').value;
+        const expenseErrorDiv = document.getElementById('expenseError');
+
+        // Clear previous error
+        expenseErrorDiv.textContent = '';
+
+        if (!expenseDate || !expenseAmount || !expenseDescription) {
+            expenseErrorDiv.textContent = 'All fields are required!';
+            return;
+        }
+
+        // Add new expense data to the array
+        expenseEntries.push({
+            date: expenseDate,
+            amount: expenseAmount,
+            description: expenseDescription
+        });
+
+        // Store the array in sessionStorage
+        sessionStorage.setItem('expenseEntries', JSON.stringify(expenseEntries));
+
+        // Clear input fields
+        document.getElementById('expenseForm').reset();
+    }
+
+    // Function to go to the summary page
+    function goToSummary() {
+        window.location.href = 'income-summary.html';
+    }
+</script>
+
+</body>
+</html>
